@@ -5,10 +5,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let taskManager = LimitTaskManager()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        guard LimitTaskManager.cpulimitURL() != nil else {
+        guard let url = LimitTaskManager.cpulimitURL(),
+              FileManager.default.isExecutableFile(atPath: url.path) else {
             let alert = NSAlert()
             alert.messageText = "未找到 cpulimit 可执行文件"
             alert.informativeText = "请先在 gui/ 目录运行 make 构建完整的 .app 包。"
+            NSApp.activate(ignoringOtherApps: true)
             alert.runModal()
             NSApp.terminate(nil)
             return

@@ -15,6 +15,18 @@ final class LimitTaskManager: ObservableObject {
     func startLimit(pid: Int32, name: String, percent: Int) {
         guard !isLimited(pid: pid), let url = Self.cpulimitURL() else { return }
 
+        // 预检:cpulimit -z 对不存在/无权限的 pid 会把提示打到 stdout 并以退出码 0 静默退出,
+        // stderr 捕获永远不会触发,因此先用 kill(pid, 0) 探测,失败时直接在任务行显示错误。
+        if kill(pid, 0) != 0 {
+            let task = LimitTask(pid: pid, name: name, percent: percent, process: Process())
+            task.state = .failed("进程不存在或无权限")
+            tasks.append(task)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
+                self?.remove(taskID: task.id)
+            }
+            return
+        }
+
         let process = Process()
         process.executableURL = url
         process.arguments = ["-z", "-p", String(pid), "-l", String(percent)]
@@ -52,14 +64,19 @@ final class LimitTaskManager: ObservableObject {
     func stopLimit(taskID: UUID) {
         guard let task = tasks.first(where: { $0.id == taskID }) else { return }
         task.process.terminationHandler = nil
-        task.process.terminate()
+        // 预检失败的任务持有从未启动的 Process,对其 terminate() 会抛异常
+        if task.process.isRunning {
+            task.process.terminate()
+        }
         remove(taskID: taskID)
     }
 
     func stopAll() {
         for task in tasks {
             task.process.terminationHandler = nil
-            task.process.terminate()
+            if task.process.isRunning {
+                task.process.terminate()
+            }
         }
         tasks.removeAll()
     }
