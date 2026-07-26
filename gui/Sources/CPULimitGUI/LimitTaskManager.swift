@@ -37,6 +37,7 @@ final class LimitTaskManager: ObservableObject {
                 } else {
                     self.remove(taskID: task.id)
                 }
+                proc.terminationHandler = nil
             }
         }
 
