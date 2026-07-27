@@ -11,6 +11,7 @@ final class StatusBarController: NSObject {
         popover = NSPopover()
         super.init()
         popover.behavior = .transient
+        popover.contentSize = NSSize(width: 320, height: 420)
         popover.contentViewController =
             NSHostingController(rootView: ContentView(taskManager: taskManager))
         if let button = statusItem.button {
@@ -25,7 +26,8 @@ final class StatusBarController: NSObject {
         if popover.isShown {
             popover.performClose(sender)
         } else if let button = statusItem.button {
-            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+            // NSStatusBarButton 为 flipped 坐标系, maxY 才是视觉下边缘
+            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .maxY)
             NSApp.activate(ignoringOtherApps: true)
         }
     }
